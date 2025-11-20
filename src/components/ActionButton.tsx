@@ -44,7 +44,7 @@ const ActionButton = ({
     const sharedClasses = `
     inline-flex justify-center items-center relative font-semibold
     ${paddingX}
-    ${textSize ? "py-2.5 text-" + textSize : "py-2 md:py-2.5 text-xs md:text-sm"}
+    ${textSize ? "py-2.5 text-" + textSize : "py-2 md:py-3 text-xs md:text-sm"}
     ${fullyRounded ? "rounded-full" : "rounded-md"}
     ${outline && !borderless ? "border border-[#D5D7DA]" : ""}
     ${borderless ? "border-0" : ""}
