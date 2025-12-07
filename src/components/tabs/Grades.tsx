@@ -16,7 +16,8 @@ interface Enrollment {
 
 interface Participant {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     participantId: string;
 }
 
@@ -37,10 +38,13 @@ const Grades = () => {
 
             setEnrollments(Array.isArray(enrollmentsData) ? enrollmentsData : []);
 
-            if (Array.isArray(participantsData)) {
-                setParticipants(participantsData.map((p: any) => ({
+            const participantsArray = Array.isArray(participantsData) ? participantsData : (Array.isArray(participantsData.results) ? participantsData.results : []);
+
+            if (participantsArray.length > 0) {
+                setParticipants(participantsArray.map((p: any) => ({
                     id: p.id,
-                    name: p.fullName,
+                    firstName: p.firstName || p.fullName?.split(' ')[0] || p.name?.split(' ')[0] || "",
+                    lastName: p.lastName || p.fullName?.split(' ').slice(1).join(' ') || p.name?.split(' ').slice(1).join(' ') || "",
                     participantId: p.participantId
                 })));
             } else {
@@ -126,7 +130,8 @@ const Grades = () => {
             if (!searchQuery.trim()) return true;
             const query = searchQuery.toLowerCase().trim();
             return (
-                participant.name.toLowerCase().includes(query) ||
+                participant.firstName.toLowerCase().includes(query) ||
+                participant.lastName.toLowerCase().includes(query) ||
                 participant.participantId.toLowerCase().includes(query)
             );
         }
@@ -164,7 +169,7 @@ const Grades = () => {
                                     className="w-full flex items-center justify-between text-left mb-4 hover:opacity-80 transition-opacity"
                                 >
                                     <h3 className="text-lg font-bold text-gray-900">
-                                        {participant.name} ({participant.participantId}) - {participantEnrollments.length} {participantEnrollments.length === 1 ? "module" : "modules"}
+                                        {participant.firstName} {participant.lastName} ({participant.participantId}) - {participantEnrollments.length} {participantEnrollments.length === 1 ? "module" : "modules"}
                                     </h3>
                                     <LuChevronDown
                                         className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${isOpen ? "transform rotate-180" : ""

@@ -16,7 +16,7 @@ interface Program {
     credits: number;
     semester: number;
     isActive: any;
-    participants : any[];
+    participants: any[];
 }
 
 const Programs = () => {
@@ -25,7 +25,7 @@ const Programs = () => {
 
     useEffect(() => {
         fetchPrograms();
-    }, []); 
+    }, []);
 
     const fetchPrograms = async () => {
         try {
@@ -123,7 +123,7 @@ const Programs = () => {
                             labelFor="title"
                             attributes={{
                                 type: "text",
-                                title: "title",
+                                name: "title",
                                 placeholder: "Computer Science",
                                 value: formik.values.title,
                                 onChange: formik.handleChange,
@@ -141,7 +141,7 @@ const Programs = () => {
                             label="Semester*"
                             labelFor="semester"
                             attributes={{
-                                title: "semester",
+                                name: "semester",
                                 value: formik.values.semester,
                                 onChange: formik.handleChange,
                                 onBlur: formik.handleBlur,
@@ -164,7 +164,7 @@ const Programs = () => {
                             label="Duration (Years) *"
                             labelFor="duration"
                             attributes={{
-                                title: "duration",
+                                name: "duration",
                                 value: formik.values.duration,
                                 onChange: formik.handleChange,
                                 onBlur: formik.handleBlur,

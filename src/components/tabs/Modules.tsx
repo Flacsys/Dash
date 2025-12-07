@@ -18,12 +18,15 @@ interface Module {
 
 interface Program {
     id: string;
-    name: string;
+    title: string;
 }
 const Modules = () => {
     const [modules, setModules] = useState<Module[]>([]);
     const [programs, setPrograms] = useState<Program[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    console.log("Modules:", modules);
+    console.log("Programs:", programs);
 
     const creditsOptions = [1, 2, 3, 4];
 
@@ -32,36 +35,33 @@ const Modules = () => {
     }, []);
 
     const fetchData = async () => {
-        // Fetch Modules
         try {
-            const modulesData = await api.get("/modules");
-            setModules(Array.isArray(modulesData) ? modulesData : []);
-        } catch (error) {
-            console.error("Failed to fetch modules:", error);
-            setModules([]);
-        }
+            const [modulesData, programsData] = await Promise.all([
+                api.get("/modules"),
+                api.get("/programs")
+            ]);
 
-        try {
-            const programsData = await api.get("/programs");
+            if (Array.isArray(modulesData)) {
+                setModules(modulesData.map((m: any) => ({
+                    ...m,
+                    id: m._id || m.id
+                })));
+            } else {
+                setModules([]);
+            }
+
             console.log("Raw programs data:", programsData);
             if (Array.isArray(programsData)) {
                 setPrograms(programsData.map((p: any) => ({
                     id: p._id,
-                    name: p.name,
-                    // duration: p.duration,
-                    // credits: p.credits,
-                    // _v: p._v,
-                    // modules: p.modules,
-                    // isActive: p.isActive,
-                    // createdAt: p.createdAt,
-                    // updatedAt: p.updatedAt,
+                    title: p.title,
                 })));
             } else {
-                console.log("Programs data is not an array:", programsData);
                 setPrograms([]);
             }
         } catch (error) {
-            console.error("Failed to fetch programs:", error);
+            console.error("Failed to fetch data:", error);
+            setModules([]);
             setPrograms([]);
         }
     };
@@ -93,7 +93,7 @@ const Modules = () => {
                     program: values.program,
                     isActive: values.isActive,
                 });
-                setModules([...modules, newModule]);
+                setModules([...modules, { ...newModule, id: newModule._id || newModule.id }]);
                 formik.resetForm();
                 console.log("Module added:", newModule);
             } catch (error) {
@@ -134,7 +134,7 @@ const Modules = () => {
                             labelFor="title"
                             attributes={{
                                 type: "text",
-                                name: "title",
+                                title: "title",
                                 placeholder: "",
                                 value: formik.values.title,
                                 onChange: formik.handleChange,
@@ -152,7 +152,7 @@ const Modules = () => {
                             label="Credits *"
                             labelFor="credits"
                             attributes={{
-                                name: "credits",
+                                title: "credits",
                                 value: formik.values.credits,
                                 onChange: formik.handleChange,
                                 onBlur: formik.handleBlur,
@@ -175,7 +175,7 @@ const Modules = () => {
                             label="Program"
                             labelFor="program"
                             attributes={{
-                                name: "program",
+                                title: "program",
                                 value: formik.values.program,
                                 onChange: formik.handleChange,
                                 onBlur: formik.handleBlur,
@@ -189,7 +189,7 @@ const Modules = () => {
                             <option value="">Select program</option>
                             {programs.map((programs) => (
                                 <option key={programs.id} value={programs.id}>
-                                    {programs.name}
+                                    {programs.title}
                                 </option>
                             ))}
                         </Select>
@@ -238,7 +238,7 @@ const Modules = () => {
                                     <span className="text-gray-900">{module.title}</span>
                                 </div>
                                 <p className="text-sm text-gray-600">
-                                    {module.credits} {module.credits === 1 ? "credit" : "credits"} • {typeof module.program === 'object' ? module.program.name : module.program}
+                                    {module.credits} {module.credits === 1 ? "credit" : "credits"} • {module.program && typeof module.program === 'object' ? module.program.title : module.program}
                                 </p>
                             </div>
                             <button

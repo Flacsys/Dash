@@ -19,28 +19,26 @@ interface Enrollment {
 
 interface Participant {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     modules: any[];
     enrolledPrograms: string[];
 }
 
 interface Module {
     id: string;
-    code: string;
     title: string;
+    code: string;
     credits: number;
     programId: any;
 }
 
 interface Program {
     id: string;
-    name: string;
+    title: string;
 }
 
 const Enrollments = () => {
-    // enrollmentIdCounter removed as backend handles IDs
-
-
     const [participants, setParticipants] = useState<Participant[]>([]);
     const [modules, setModules] = useState<Module[]>([]);
     const [programs, setPrograms] = useState<Program[]>([]);
@@ -58,11 +56,13 @@ const Enrollments = () => {
                 api.get("/programs")
             ]);
 
-            console.log(participantsData.results);
-            if (Array.isArray(participantsData.results)) {
-                setParticipants(participantsData.results.map((p: any) => ({
+            const participantsArray = Array.isArray(participantsData) ? participantsData : (Array.isArray(participantsData.results) ? participantsData.results : []);
+
+            if (participantsArray.length > 0) {
+                setParticipants(participantsArray.map((p: any) => ({
                     id: p._id,
-                    name: p.name,
+                    firstName: p.firstName || p.fullName?.split(' ')[0] || p.name?.split(' ')[0] || "",
+                    lastName: p.lastName || p.fullName?.split(' ').slice(1).join(' ') || p.name?.split(' ').slice(1).join(' ') || "",
                     modules: p.modules || [],
                     enrolledPrograms: p.enrolledPrograms || []
                 })));
@@ -85,7 +85,7 @@ const Enrollments = () => {
             if (Array.isArray(programsData)) {
                 setPrograms(programsData.map((p: any) => ({
                     id: p.id || p._id,
-                    name: p.name
+                    title: p.title
                 })));
             } else {
                 setPrograms([]);
@@ -136,46 +136,13 @@ const Enrollments = () => {
                         return;
                     }
 
-                    const newModuleEntry = {
-                        module: values.module,
-                        enrolledAt: new Date(),
-                        status: values.status,
-                        grades: [],
-                        finalScore: null,
-                        gradePoint: 0,
-                        gradeLetter: null
-                    };
-
-                    const updatedModules = [...selectedParticipant.modules, newModuleEntry];
-
-                    // Update enrolledPrograms if needed
-                    const updatedPrograms = selectedParticipant.enrolledPrograms.includes(values.program)
-                        ? selectedParticipant.enrolledPrograms
-                        : [...selectedParticipant.enrolledPrograms, values.program];
-
-                    // We need to send IDs for modules in the update payload if the backend expects IDs
-                    // But if we send the whole array, we must ensure existing populated modules are converted back to IDs if the backend requires it.
-                    // Assuming backend handles mixed or we should map to IDs. Safest is to map to IDs.
-                    const payloadModules = updatedModules.map((m: any) => ({
-                        ...m,
-                        module: typeof m.module === 'object' ? m.module._id : m.module
-                    }));
-
-                    await api.put(`/participants/${selectedParticipant.id}`, {
-                        modules: payloadModules,
-                        enrolledPrograms: updatedPrograms
+                    await api.post(`/participants/${selectedParticipant.id}/enroll`, {
+                        moduleIds: [values.module]
                     });
 
-                    // Update local state
-                    const updatedParticipant = {
-                        ...selectedParticipant,
-                        modules: updatedModules,
-                        enrolledPrograms: updatedPrograms
-                    };
+                    await fetchData();
 
-                    setParticipants(participants.map(p => p.id === selectedParticipant.id ? updatedParticipant : p));
-
-                    console.log("Enrollment updated for participant:", selectedParticipant.name);
+                    console.log("Enrollment updated for participant:", selectedParticipant.firstName);
 
                     formik.resetForm({
                         values: {
@@ -203,12 +170,12 @@ const Enrollments = () => {
         const moduleId = typeof m.module === 'object' ? m.module._id : m.module;
         const moduleDetails = modules.find(mod => mod.id === moduleId);
         return {
-            id: moduleId, // Using module ID as enrollment ID for display since it's embedded
+            id: moduleId,
             participantId: selectedParticipant.id,
             moduleCode: moduleDetails?.code || (typeof m.module === 'object' ? m.module.code : 'N/A'),
             moduleName: moduleDetails?.title || (typeof m.module === 'object' ? m.module.title : 'Unknown'),
             credits: moduleDetails?.credits || (typeof m.module === 'object' ? m.module.credits : 0),
-            progress: 0, // Not in schema
+            progress: 0,
             grade: m.gradeLetter,
             status: m.status
         };
@@ -233,7 +200,6 @@ const Enrollments = () => {
                 modules: payloadModules
             });
 
-            // Update local state
             const updatedParticipant = {
                 ...selectedParticipant,
                 modules: updatedModules
@@ -294,7 +260,7 @@ const Enrollments = () => {
                             <option value="">Choose a participant</option>
                             {participants.map((participants) => (
                                 <option key={participants.id} value={participants.id}>
-                                    {participants.name}
+                                    {participants.firstName} {participants.lastName}
                                 </option>
                             ))}
                         </Select>
@@ -318,9 +284,9 @@ const Enrollments = () => {
                             }
                         >
                             <option value="">Select program</option>
-                            {programs.map((program) => (
-                                <option key={program.id} value={program.id}>
-                                    {program.name}
+                            {programs.map((programs) => (
+                                <option key={programs.id} value={programs.id}>
+                                    {programs.title}
                                 </option>
                             ))}
                         </Select>
@@ -331,9 +297,15 @@ const Enrollments = () => {
                             attributes={{
                                 name: "module",
                                 value: formik.values.module,
-                                onChange: formik.handleChange,
+                                onChange: (e) => {
+                                    formik.handleChange(e);
+                                    const selectedModuleId = e.target.value;
+                                    const selectedModule = modules.find(m => m.id === selectedModuleId);
+                                    if (selectedModule && selectedModule.programId) {
+                                        formik.setFieldValue("program", selectedModule.programId);
+                                    }
+                                },
                                 onBlur: formik.handleBlur,
-                                disabled: !formik.values.program
                             }}
                             error={
                                 formik.touched.module && formik.errors.module
@@ -413,7 +385,7 @@ const Enrollments = () => {
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                     <div className="mb-4">
                         <h2 className="text-xl font-bold text-gray-900">
-                            Current Enrollments for {selectedParticipant?.name} ({filteredEnrollments.length})
+                            Current Enrollments for {selectedParticipant?.firstName} {selectedParticipant?.lastName} ({filteredEnrollments.length})
                         </h2>
                     </div>
 

@@ -10,7 +10,8 @@ import { api } from "../../utils/api.ts";
 interface Participant {
     id: string;
     participantId: string;
-    fullName: string;
+    firstName: string;
+    lastName: string;
     email: string;
     phoneNumber: string;
     division: string;
@@ -43,10 +44,21 @@ const Participants = () => {
             ]);
 
             // Ensure data is an array before setting state
-            setParticipants(Array.isArray(participantsData) ? participantsData : []);
+            const participantsArray = Array.isArray(participantsData) ? participantsData : (Array.isArray(participantsData.results) ? participantsData.results : []);
+
+            if (participantsArray.length > 0) {
+                setParticipants(participantsArray.map((p: any) => ({
+                    ...p,
+                    id: p._id || p.id,
+                    firstName: p.firstName || p.fullName?.split(' ')[0] || "",
+                    lastName: p.lastName || p.fullName?.split(' ').slice(1).join(' ') || "",
+                })));
+            } else {
+                setParticipants([]);
+            }
 
             if (Array.isArray(programsData)) {
-                setPrograms(programsData.map((p: any) => ({ id: p.id, title: p.title })))
+                setPrograms(programsData.map((p: any) => ({ id: p._id || p.id, title: p.title })))
             } else {
                 setPrograms([]);
             }
@@ -60,9 +72,12 @@ const Participants = () => {
     const semesters = ["1st", "2nd"];
 
     const validationSchema = Yup.object({
-        fullName: Yup.string()
-            .required("Full Name is required")
-            .min(3, "Full Name must be at least 3 characters"),
+        firstName: Yup.string()
+            .required("First Name is required")
+            .min(2, "First Name must be at least 2 characters"),
+        lastName: Yup.string()
+            .required("Last Name is required")
+            .min(2, "Last Name must be at least 2 characters"),
         email: Yup.string()
             .email("Please enter a valid email address"),
         password: Yup.string(),
@@ -75,7 +90,8 @@ const Participants = () => {
 
     const formik = useFormik({
         initialValues: {
-            fullName: "",
+            firstName: "",
+            lastName: "",
             email: "",
             password: "",
             phoneNumber: "",
@@ -83,21 +99,23 @@ const Participants = () => {
             deanery: "",
             parish: "",
             program: "",
-            currentSemester: "1Qtr",
+            currentSemester: "1st",
         },
         validationSchema,
         onSubmit: async (values) => {
             setIsLoading(true);
             let generatedPassword = values.password;
             if (!generatedPassword) {
-                const firstName = values.fullName.split(" ")[0].toLowerCase();
+                const firstName = values.firstName.toLowerCase();
                 const lastThreeDigits = values.phoneNumber.toString().slice(-3);
                 generatedPassword = firstName + lastThreeDigits;
             }
 
             try {
                 const newParticipant = await api.post("/participants", {
-                    fullName: values.fullName,
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    fullName: `${values.firstName} ${values.lastName}`, // Send fullName for backward compatibility if needed
                     email: values.email,
                     password: generatedPassword,
                     division: values.division,
@@ -106,7 +124,11 @@ const Participants = () => {
                     program: values.program,
                     modulesCount: 0,
                 });
-                setParticipants([...participants, newParticipant]);
+                setParticipants([...participants, {
+                    ...newParticipant,
+                    firstName: values.firstName,
+                    lastName: values.lastName
+                }]);
                 formik.resetForm();
                 console.log("Participant added:", newParticipant);
             } catch (error) {
@@ -147,7 +169,7 @@ const Participants = () => {
                         >
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-bold text-gray-900">{participant.fullName}</span>
+                                    <span className="font-bold text-gray-900">{participant.firstName} {participant.lastName}</span>
                                 </div>
                                 <p className="text-sm text-gray-600 mb-1">
                                     {participant.participantId} • {participant.program} • {participant.graduationYear}
@@ -181,19 +203,37 @@ const Participants = () => {
                 <form onSubmit={formik.handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
-                            label="Full Name *"
-                            labelFor="fullName"
+                            label="First Name *"
+                            labelFor="firstName"
                             attributes={{
                                 type: "text",
-                                name: "fullName",
-                                placeholder: "John Doe",
-                                value: formik.values.fullName,
+                                name: "firstName",
+                                placeholder: "John",
+                                value: formik.values.firstName,
                                 onChange: formik.handleChange,
                                 onBlur: formik.handleBlur,
                             }}
                             error={
-                                formik.touched.fullName && formik.errors.fullName
-                                    ? formik.errors.fullName
+                                formik.touched.firstName && formik.errors.firstName
+                                    ? formik.errors.firstName
+                                    : undefined
+                            }
+                        />
+
+                        <Input
+                            label="Last Name *"
+                            labelFor="lastName"
+                            attributes={{
+                                type: "text",
+                                name: "lastName",
+                                placeholder: "Doe",
+                                value: formik.values.lastName,
+                                onChange: formik.handleChange,
+                                onBlur: formik.handleBlur,
+                            }}
+                            error={
+                                formik.touched.lastName && formik.errors.lastName
+                                    ? formik.errors.lastName
                                     : undefined
                             }
                         />
@@ -295,9 +335,9 @@ const Participants = () => {
                             }
                         >
                             <option value="">Select a program</option>
-                            {programs.map((programs) => (
-                                <option key={programs.id} value={programs.id}>
-                                    {programs.title}
+                            {programs.map((program) => (
+                                <option key={program.id} value={program.id}>
+                                    {program.title}
                                 </option>
                             ))}
                         </Select>
