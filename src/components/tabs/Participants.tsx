@@ -32,7 +32,9 @@ const Participants = () => {
             .min(2, "Last Name must be at least 2 characters"),
         email: Yup.string()
             .email("Please enter a valid email address"),
-        password: Yup.string(),
+        password: Yup.string()
+            .required("Password is required")
+            .min(6, "Password must be at least 6 characters"),
         phoneNumber: Yup.number()
             .required("Phone Number is required"),
         program: Yup.string()
@@ -55,12 +57,8 @@ const Participants = () => {
         },
         validationSchema,
         onSubmit: async (values) => {
-            let generatedPassword = values.password;
-            if (!generatedPassword) {
-                const firstName = values.firstName.toLowerCase();
-                const lastThreeDigits = values.phoneNumber.toString().slice(-3);
-                generatedPassword = firstName + lastThreeDigits;
-            }
+            // Password is now mandatory, no auto-generation
+            const generatedPassword = values.password;
 
             try {
                 await addParticipant({
@@ -195,11 +193,12 @@ const Participants = () => {
                         />
 
                         <Input
-                            label="Password (optional)"
+                            label="Password *"
                             labelFor="password"
                             attributes={{
+                                type: "password",
                                 name: "password",
-                                placeholder: "Auto-generated if empty",
+                                placeholder: "Enter password",
                                 value: formik.values.password,
                                 onChange: formik.handleChange,
                                 onBlur: formik.handleBlur,

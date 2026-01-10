@@ -7,7 +7,7 @@ import ActionButton from "../components/ActionButton.tsx";
 import { LuUser, LuLock, LuShield } from "react-icons/lu";
 import { AUTH_TOKEN_KEY, AUTH_ADMIN_KEY, API_BASE_URL } from "../utils/constants";
 
-const API_URL = `${API_BASE_URL}/auth/login`;
+const API_URL = `${API_BASE_URL}/auth/admin-login`;
 
 const Login = () => {
     const navigate = useNavigate();
