@@ -288,10 +288,13 @@ const Participants = () => {
 
                         <Input
                             label="Password *"
+                            label="Password *"
                             labelFor="password"
                             attributes={{
                                 type: "password",
+                                type: "password",
                                 name: "password",
+                                placeholder: "Enter password",
                                 placeholder: "Enter password",
                                 value: formik.values.password,
                                 onChange: formik.handleChange,
